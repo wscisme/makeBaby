@@ -24,6 +24,7 @@
 
 // header
 #include "makeBaby.h"
+#include "IsoTrackVeto.h"
 
 typedef ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float> > LorentzVector;
 
@@ -46,7 +47,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
   TIter fileIter(listOfFiles);
   TFile *currentFile = 0;
 
-  int fileCounter = 0;
+  unsigned int fileCounter = 0;
   int goodCounter = 0;
   int pt20Counter = 0; 
   int osCounter = 0; 
@@ -134,8 +135,6 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       // if any one jet meet the problem of the above, veto the whole event.
       bool trkProbVeto = false;
 
-      bool tpv = TrackingProblemVeto == 1; 
-
       bool isZmet = false;
       bool isHLT1 = false;
       bool isHLT2 = false;
@@ -143,7 +142,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       int n_mus = 0;
       int n_els = 0;      
       // apply cuts to hypotheses
-      for (unsigned int i = 0; i< els_p4().size(); i++){
+      for(unsigned int i = 0; i< els_p4().size(); i++){
       	//SELECTION
       	if (els_p4().at(i).pt() < 20)	        {	pt20Counter++;  continue; }
 	if (fabs(els_p4().at(i).eta()) > 2.4)   {	etaCounter++;   continue; }
@@ -163,7 +162,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       	n_els++;
       	index = i;
       }    
-      for (unsigned int i = 0; i< mus_p4().size(); i++){
+      for(unsigned int i = 0; i< mus_p4().size(); i++){
 	//SELECTION
 	if (mus_p4().at(i).pt() < 20)		{	pt20Counter++;  continue; } 
 	if (fabs(mus_p4().at(i).eta()) > 2.1)	{	etaCounter++;   continue; }
@@ -185,9 +184,14 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       
       if ((n_els + n_mus) != 1 ) continue;
 
-
       if( pfjets_p4().size() < 2) {less_jets++; continue;} // pre-selection check
       
+      bool tau_veto = false;
+      /// Tau Veto //
+      for(unsigned int i = 0; i < taus_pf_p4().size(); i++){
+	if(goodTau(i)) tau_veto = true;
+      }
+
       LorentzVector lrp4;
 
       int n_bTag =0;
@@ -210,15 +214,61 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       	float _bTag = pfjets_combinedSecondaryVertexBJetTag().at(c);
       	if ( _bTag > bTagDiscriminant)  n_bTag++;	 // mark as the has qualified b-jet, _bTag should be 0~1
 
-	if (( abs(pfjets->Eta()) > 0.9 && abs(pfjets->Eta()) < 1.9 &&
-	      (pfjets_chargedMultiplicity() - pfjets_neutralMultiplicity()) > 40) == 0) 
-	  trkProbVeto = true;
+	if (( abs(pfjets_p4().at(c).Eta()) > 0.9 && abs(pfjets_p4().at(c).Eta()) < 1.9 &&
+	      (pfjets_chargedMultiplicity().at(c) - pfjets_neutralMultiplicity().at(c)) > 40) == 0) {
+	  trkProbVeto = true;	       // break;
+	}
 	
       	n_jets++;					 // as qualified jet multiplicity
       }//pfjets_p4().size()
       
-      if(n_jets < 2 || n_bTag == 0) {less_jets++; continue;}
+      // if(n_jets < 2 || n_bTag == 0) {less_jets++; continue;}
       // if(trkProbVeto )     continue;
+
+      ///// Iso Track Veto /////
+
+      bool foundIsoTrack = false;
+
+      for (unsigned int ipf = 0; ipf < pfcands_p4().size(); ipf++) {
+
+        if(cms2.pfcands_charge().at(ipf) == 0) continue;
+
+        const bool isLepton = (abs(cms2.pfcands_particleId().at(ipf))==11) || (abs(cms2.pfcands_particleId().at(ipf))==13);
+        const float cand_pt = cms2.pfcands_p4().at(ipf).pt();
+ 
+        if(cand_pt < 5) continue;
+        if(!isLepton && (cand_pt < 10)) continue;
+	
+	if(isLepton && cand_pt == lrp4.pt())   continue;
+
+        int itrk = -1;
+        float mindz = 999.;
+
+        if (abs(cms2.pfcands_particleId().at(ipf))!=11) {
+          itrk = cms2.pfcands_trkidx().at(ipf);
+          if( itrk >= (int)cms2.trks_trk_p4().size() || itrk < 0 ) continue;
+          mindz=trks_dz_pv(itrk,0).first;
+        }   
+
+        if (abs(cms2.pfcands_particleId().at(ipf))==11 && cms2.pfcands_pfelsidx().at(ipf)>=0) {
+          itrk = cms2.els_gsftrkidx().at(cms2.pfcands_pfelsidx().at(ipf));
+          if( itrk >= (int)cms2.gsftrks_p4().size() || itrk < 0 ) continue;
+          mindz=gsftrks_dz_pv(itrk,0).first;
+        }
+        
+        if(mindz > 0.1) continue;
+        
+        float reliso  = TrackIso(ipf) / cand_pt;
+
+        if(isLepton && (reliso < 0.2)){
+          foundIsoTrack = true;
+          break;
+        }
+        if(!isLepton && (reliso < 0.1)){
+          foundIsoTrack = true;
+          break;
+        }
+      }
 
       goodCounter++;
 
@@ -244,9 +294,16 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       isHLT1Lep = isHLT1;
       isHLT2Lep = isHLT2;
 
+      trackingProblemVeto = trkProbVeto;
+      tauVeto = tau_veto;
+      isoTrackVeto = foundIsoTrack;
+
       jets_p4 = pfjets_p4();
       jets_p4Correction = pfjets_corL1FastL2L3();
       btagDiscriminant = pfjets_combinedSecondaryVertexBJetTag();
+
+      njets = n_jets;
+      nbTag = n_bTag;
 
       if(abs(lr_id) == 11)	  lr_p4 = els_p4().at(lr_index);
       if(abs(lr_id) == 13)	  lr_p4 = mus_p4().at(lr_index);
@@ -269,7 +326,6 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       scale_1fb = evt_scale1fb();
       isRealData = evt_isRealData();
       nvtxs = evt_nvtxs();
-      trackingProblemVeto = trkProbVeto;
 
       FillBabyNtuple();
 

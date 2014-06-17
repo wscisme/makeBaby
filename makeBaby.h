@@ -79,6 +79,8 @@ class babyMaker {
   bool isHLT2Lep;
 
   bool trackingProblemVeto;
+  bool tauVeto;
+  bool isoTrackVeto;
 
   int isRealData;
   int nvtxs;
@@ -148,6 +150,8 @@ void babyMaker::MakeBabyNtuple(const char *BabyFilename){
   BabyTree_->Branch("isHLT2Lep", &isHLT2Lep);
 
   BabyTree_->Branch("trackingProblemVeto", &trackingProblemVeto);
+  BabyTree_->Branch("tauVeto", &tauVeto);
+  BabyTree_->Branch("isoTrackVeto", &isoTrackVeto);
 
   BabyTree_->Branch("isRealData", &isRealData );
   BabyTree_->Branch("nvtxs", &nvtxs );
@@ -221,116 +225,19 @@ bool passHBHEFilter()
   return true;
 }
 
-
  
+bool goodTau(int index){
 
-bool passTauVeto() {
-
-  // To define indexTauMax
-  for (unsigned int itau=0; itau < taus_pf_p4().size(); itau++) {
-
-    if(taus_pf_p4().at(itau).pt()<15) continue;
-
-    /// Use only OS charge  /// no id1_ defined here
-    // if((taus_pf_charge().at(itau)*id1_)>0) continue;
-
-    // no imaxpt defined here
-    // bool isLeadLepton = ( ROOT::Math::VectorUtil::DeltaR( taus_pf_p4().at(itau), goodLeptons.at(imaxpt) ) < 0.4 ) ? true : false;
-
-    if(isLeadLepton) continue;
-
-    if(!taus_pf_byDecayModeFinding().at(itau)) continue;
-
-
-    // isolation Medium ; pt > 15
-
-    if(taus_pf_byMediumIsolationMVA2().at(itau)) {
-
-      if(taus_pf_p4().at(itau).pt()>ptTauMax15) {
-
-	ptTauMax15 = taus_pf_p4().at(itau).pt();
-
-	indexTauMax15 = itau;
-
-      }
-
-    }
-
- 
-
- 
-
-    if(taus_pf_p4().at(itau).pt()<20) continue;
-
- 
-
-    // isolation Medium ; pt > 20   
-
-    if(taus_pf_byMediumIsolationMVA2().at(itau)) {
-
-      if(taus_pf_p4().at(itau).pt()>ptTauMax) {
-
-	ptTauMax = taus_pf_p4().at(itau).pt();
-
-	indexTauMax = itau;
-
-      }
-
-    }
-
-
-
-
-
-
-
-  if(stopt.pfTau_leadPtcandID()!=(-1)) return false;
+  if(cms2.taus_pf_p4()[index].pt() < 20) return false;
+  if(fabs(cms2.taus_pf_p4()[index].eta()) > 2.3) return false;
+  if(cms2.taus_pf_byDecayModeFinding()[index] < 0.5) return false;
+  if(cms2.taus_pf_againstElectronLoose()[index] < 0.5) return false;
+  if(cms2.taus_pf_againstMuonTight2()[index] < 0.5) return false;
+  if(cms2.taus_pf_byLooseCombinedIsolationDeltaBetaCorr3Hits()[index] < 0.5) return false;
 
   return true;
-
-
-
-
-
-
 }
 
- 
 
- 
-
-if(indexTauMax!=-1) {
-
- 
-
-  pfTau_=&taus_pf_p4().at(indexTauMax);
-
-  for(int ipf=0; ipf<taus_pf_pfcandIndicies().at(indexTauMax).size(); ipf ++) {
-
- 
-
-    int index=(taus_pf_pfcandIndicies().at(indexTauMax)).at(ipf);
-
-    //      cout << "part  " << ipf << " with pt " << pfcands_p4().at(index).pt() << " eta " << pfcands_p4().at(index).eta()  << endl;
-
- 
-
-  }
-
- 
-
-  if(taus_pf_pfcandIndicies().at(indexTauMax).size()>0) {
-
-    int leadingPtCand_index=(taus_pf_pfcandIndicies().at(indexTauMax)).at(0);
-
-    pfTau_leadPtcand_= &(pfcands_p4().at(leadingPtCand_index));
-
-    pfTau_leadPtcandID_= pfcands_particleId().at(leadingPtCand_index);
-
- 
-
-  }
-
- }
 
  
