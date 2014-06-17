@@ -61,7 +61,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
   int noGoodVtx = 0;
   int less_jets = 0;
   int samesign = 0;
-  int zmet = 0;
+  int stop = 0;
 
   const float bTagDiscriminant = 0.244;
 
@@ -135,6 +135,8 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       // if any one jet meet the problem of the above, veto the whole event.
       bool trkProbVeto = false;
 
+      bool isSsgn = false;
+      bool isStop = false;
       bool isZmet = false;
       bool isHLT1 = false;
       bool isHLT2 = false;
@@ -146,14 +148,17 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       	//SELECTION
       	if (els_p4().at(i).pt() < 20)	        {	pt20Counter++;  continue; }
 	if (fabs(els_p4().at(i).eta()) > 2.4)   {	etaCounter++;   continue; }
-	if ( ! isNumeratorLepton(11, i) )       {	elIdCounter++;  continue; }
 
+	isSsgn = isNumeratorLepton(11, i);
+	isStop = passElectronSelection_Stop2012_v3(i);
 	isZmet = passElectronSelection_ZMet2012_v3_Iso(i);
 	isHLT1 = els_HLT_Ele27_WP80()[i];
 	isHLT2 = els_HLT_Ele27_WP80_L1sL1SingleEG20ORL1SingleEG22()[i];
 
-	// if ( isNumeratorLepton(11, i) && ( !passElectronSelection_ZMet2012_v3_Iso(i) )) {samesign++;}  
-	// if ( (! isNumeratorLepton(11, i)) && ( passElectronSelection_ZMet2012_v3_Iso(i) )) {zmet++;}  
+	if ( isNumeratorLepton(11, i) && ( !passElectronSelection_Stop2012_v3(i) )) {samesign++;}  
+	if ( (! isNumeratorLepton(11, i)) && ( passElectronSelection_Stop2012_v3(i) )) {stop++;}  
+
+	if ( ! isNumeratorLepton(11, i) )       {	elIdCounter++;  continue; }
       	// electron id			        
         // if ( !passElectronSelection_ZMet2012_v3_Iso(i)) continue;
       	// if ( electronIsoValuePF2012_FastJetEffArea_v3(i) > 0.15)   continue;
@@ -166,15 +171,18 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 	//SELECTION
 	if (mus_p4().at(i).pt() < 20)		{	pt20Counter++;  continue; } 
 	if (fabs(mus_p4().at(i).eta()) > 2.1)	{	etaCounter++;   continue; }
-	if ( ! isNumeratorLepton(13, i) )	{	muIdCounter++;  continue; }
 
+	isSsgn = isNumeratorLepton(13, i);
+	isStop = muonId(i, ZMet2012_v1);
 	isZmet = muonId(i, ZMet2012_v1);
 	isHLT1 = mus_HLT_IsoMu24_eta2p1()[i];
 	isHLT2 = mus_HLT_IsoMu24_eta2p1_L1sMu16Eta2p1()[i];
 
-	// if ( ( isNumeratorLepton(13, i)) && (! muonId(i, ZMet2012_v1)) )	{	samesign++;  }
-	// if ( (!isNumeratorLepton(13, i)) && muonId(i, ZMet2012_v1) )	        {	zmet++;  }
-	// if ( !muonId(i, ZMet2012_v1)) continue;
+	if ( ( isNumeratorLepton(13, i)) && (! muonId(i, ZMet2012_v1)) )	{	samesign++;  }
+	if ( (!isNumeratorLepton(13, i)) && muonId(i, ZMet2012_v1) )	        {	stop++;  }
+
+	if ( !muonId(i, ZMet2012_v1))    {	muIdCounter++;  continue; }
+	// if ( ! isNumeratorLepton(13, i) )	{	muIdCounter++;  continue; }
      	// if ( muonIsoValuePF2012_deltaBeta(i) > 0.2 ) continue;
      	// if ( ! ETHSelection::goodMuon(i) ) continue;
 
@@ -283,13 +291,15 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       if(n_els > 0)	  lr_id = els_charge().at(index) * -11;
       if(n_mus > 0)	  lr_id = mus_charge().at(index) * -13;
 
-      // njets = n_jets;
-      // nbTag = n_bTag;
+      njets = n_jets;
+      nbTag = n_bTag;
 
       met = evt_pfmet_type1cor();
       metPhi = evt_pfmetPhi_type1cor();
       
       lr_index = index;
+      isSamesignLep = isSsgn;
+      isStopLep = isStop;
       isZmetLep = isZmet;
       isHLT1Lep = isHLT1;
       isHLT2Lep = isHLT2;
@@ -301,9 +311,6 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       jets_p4 = pfjets_p4();
       jets_p4Correction = pfjets_corL1FastL2L3();
       btagDiscriminant = pfjets_combinedSecondaryVertexBJetTag();
-
-      njets = n_jets;
-      nbTag = n_bTag;
 
       if(abs(lr_id) == 11)	  lr_p4 = els_p4().at(lr_index);
       if(abs(lr_id) == 13)	  lr_p4 = mus_p4().at(lr_index);
@@ -366,7 +373,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 
     myfile << "# of events cut at OS :" << osCounter << endl;
     myfile << "# of events cut at ETA :" << etaCounter << endl;
-    myfile << "# of cuts of samesign vs zmet : " << samesign << "   " << zmet << endl;
+    myfile << "# of cuts of samesign vs stop : " << samesign << "   " << stop << endl;
 
     myfile << "# of events cut at muon ID/ISO :" << muIdCounter << endl;
     myfile << "# of events cut at electron ID/ISO :" << elIdCounter << endl;

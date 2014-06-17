@@ -74,6 +74,8 @@ class babyMaker {
   int lr_charge;
   int lr_index;
 
+  bool isSamesignLep;
+  bool isStopLep;
   bool isZmetLep;
   bool isHLT1Lep;
   bool isHLT2Lep;
@@ -145,6 +147,8 @@ void babyMaker::MakeBabyNtuple(const char *BabyFilename){
   BabyTree_->Branch("scale_1fb", &scale_1fb);
   BabyTree_->Branch("btagDiscriminant", &btagDiscriminant);
 
+  BabyTree_->Branch("isSamesignLep", &isSamesignLep);
+  BabyTree_->Branch("isStopLep", &isStopLep);
   BabyTree_->Branch("isZmetLep", &isZmetLep);
   BabyTree_->Branch("isHLT1Lep", &isHLT1Lep);
   BabyTree_->Branch("isHLT2Lep", &isHLT2Lep);
