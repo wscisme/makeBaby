@@ -122,14 +122,15 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       if ( evt_ww_rho_vor() > 40 )		continue;
 
       /// Filters ///
-      if(  evt_cscTightHaloId()    )		continue;
-      if( !evt_hbheFilter()        )		continue;
-      if( !filt_hcalLaser()        )		continue;
-      if( !filt_ecalTP()           )		continue;
-      if( !filt_trackingFailure()  )		continue;
-      if( !filt_eeBadSc()          )		continue;
-      if( !passHBHEFilter()	   )		continue;
-
+      if( evt_isRealData()){
+	if(  evt_cscTightHaloId()    )		continue;
+	if( !evt_hbheFilter()        )		continue;
+	if( !filt_hcalLaser()        )		continue;
+	if( !filt_ecalTP()           )		continue;
+	if( !filt_trackingFailure()  )		continue;
+	if( !filt_eeBadSc()          )		continue;
+	if( !passHBHEFilter()	   )		continue;
+      }
       /// Tracking Problem Veto
       // TCut TrackingProblemVeto("Sum$(( abs(pfjets->Eta()) > 0.9 && abs(pfjets->Eta()) < 1.9 && (pfjets_chm - pfjets_neu) > 40)) == 0");
       // if any one jet meet the problem of the above, veto the whole event.
