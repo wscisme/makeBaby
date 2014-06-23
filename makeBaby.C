@@ -53,9 +53,9 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
   int osCounter = 0; 
   int etaCounter = 0;
   int muIdCounter = 0;
-  int elIdCounter = 0; 
-  int llCounter = 0;
-  int ltCounter = 0;
+  int elIdCounter = 0;
+  int rhoCounter = 0;
+  int filterCounter = 0;
   int muCounter = 0;
   int elCounter = 0;
   int noGoodVtx = 0;
@@ -119,17 +119,17 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       /////// Event Cleaning //////////
 
       /// Rho
-      if ( evt_ww_rho_vor() > 40 )		continue;
+      if ( evt_ww_rho_vor() > 40 )		{ rhoCounter++;  continue;}
 
       /// Filters ///
       if( evt_isRealData()){
-	if(  evt_cscTightHaloId()    )		continue;
-	if( !evt_hbheFilter()        )		continue;
-	if( !filt_hcalLaser()        )		continue;
-	if( !filt_ecalTP()           )		continue;
-	if( !filt_trackingFailure()  )		continue;
-	if( !filt_eeBadSc()          )		continue;
-	if( !passHBHEFilter()	   )		continue;
+	if(  evt_cscTightHaloId()    )		{ filterCounter++;  continue;}
+	if( !evt_hbheFilter()        )		{ filterCounter++;  continue;}
+	if( !filt_hcalLaser()        )		{ filterCounter++;  continue;}
+	if( !filt_ecalTP()           )		{ filterCounter++;  continue;}
+	if( !filt_trackingFailure()  )		{ filterCounter++;  continue;}
+	if( !filt_eeBadSc()          )		{ filterCounter++;  continue;}
+	if( !passHBHEFilter()	   )		{ filterCounter++;  continue;}
       }
       /// Tracking Problem Veto
       // TCut TrackingProblemVeto("Sum$(( abs(pfjets->Eta()) > 0.9 && abs(pfjets->Eta()) < 1.9 && (pfjets_chm - pfjets_neu) > 40)) == 0");
@@ -149,6 +149,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       	//SELECTION
       	if (els_p4().at(i).pt() < 20)	        {	pt20Counter++;  continue; }
 	if (fabs(els_p4().at(i).eta()) > 2.4)   {	etaCounter++;   continue; }
+	if ( !passElectronSelection_Stop2012_v3(i) )       {	elIdCounter++;  continue; }
 
 	isSsgn = isNumeratorLepton(11, i);
 	isStop = passElectronSelection_Stop2012_v3(i);
@@ -159,7 +160,6 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 	if ( isNumeratorLepton(11, i) && ( !passElectronSelection_Stop2012_v3(i) )) {samesign++;}  
 	if ( (! isNumeratorLepton(11, i)) && ( passElectronSelection_Stop2012_v3(i) )) {stop++;}  
 
-	if ( ! isNumeratorLepton(11, i) )       {	elIdCounter++;  continue; }
       	// electron id			        
         // if ( !passElectronSelection_ZMet2012_v3_Iso(i)) continue;
       	// if ( electronIsoValuePF2012_FastJetEffArea_v3(i) > 0.15)   continue;
@@ -172,6 +172,10 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 	//SELECTION
 	if (mus_p4().at(i).pt() < 20)		{	pt20Counter++;  continue; } 
 	if (fabs(mus_p4().at(i).eta()) > 2.1)	{	etaCounter++;   continue; }
+	if ( !muonId(i, ZMet2012_v1) )    {	muIdCounter++;  continue; }
+
+	if ( ( isNumeratorLepton(13, i)) && (! muonId(i, ZMet2012_v1)) )	{	samesign++;  }
+	if ( (!isNumeratorLepton(13, i)) && muonId(i, ZMet2012_v1) )	        {	stop++;  }
 
 	isSsgn = isNumeratorLepton(13, i);
 	isStop = muonId(i, ZMet2012_v1);
@@ -179,10 +183,6 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 	isHLT1 = mus_HLT_IsoMu24_eta2p1()[i];
 	isHLT2 = mus_HLT_IsoMu24_eta2p1_L1sMu16Eta2p1()[i];
 
-	if ( ( isNumeratorLepton(13, i)) && (! muonId(i, ZMet2012_v1)) )	{	samesign++;  }
-	if ( (!isNumeratorLepton(13, i)) && muonId(i, ZMet2012_v1) )	        {	stop++;  }
-
-	if ( !muonId(i, ZMet2012_v1))    {	muIdCounter++;  continue; }
 	// if ( ! isNumeratorLepton(13, i) )	{	muIdCounter++;  continue; }
      	// if ( muonIsoValuePF2012_deltaBeta(i) > 0.2 ) continue;
      	// if ( ! ETHSelection::goodMuon(i) ) continue;
@@ -224,7 +224,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       	if ( _bTag > bTagDiscriminant)  n_bTag++;	 // mark as the has qualified b-jet, _bTag should be 0~1
 
 	if (( abs(pfjets_p4().at(c).Eta()) > 0.9 && abs(pfjets_p4().at(c).Eta()) < 1.9 &&
-	      (pfjets_chargedMultiplicity().at(c) - pfjets_neutralMultiplicity().at(c)) > 40) == 0) {
+	      (pfjets_chargedMultiplicity().at(c) - pfjets_neutralMultiplicity().at(c)) > 40) ) {
 	  trkProbVeto = true;	       // break;
 	}
 	
@@ -363,11 +363,11 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
     myfile << "Duplicates :" << nDuplicates << endl;
     myfile << "no Good Vertex :" << noGoodVtx << endl;
 
-    myfile << "# of ll leptons :" << llCounter << endl;
-    myfile << "# of lt leptons :" << ltCounter << endl;
+    myfile << "# rejected by rho :"     << rhoCounter << endl;
+    myfile << "# rejected by filters :" << filterCounter << endl;
 
     myfile << "# of electrons :" << elCounter << endl;
-    myfile << "# of muons:" << muCounter << endl;
+    myfile << "# of muons:"      << muCounter << endl;
 
     myfile << "# of leptons cut at 20 GeV :" << pt20Counter << endl;
 
