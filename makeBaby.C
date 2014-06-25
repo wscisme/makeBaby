@@ -248,7 +248,10 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
         if(cand_pt < 5) continue;
         if(!isLepton && (cand_pt < 10)) continue;
 	
-	if(isLepton && cand_pt == lrp4.pt())   continue;
+      	float dr_l = DeltaR( cms2.pfcands_p4().at(ipf) , lrp4 );
+	// if( isLepton && dr_ < 0.001 && cand_pt != lrp4.pt())  cout << cand_pt- lrp4.pt()<< "Hey!!\n";
+	if( isLepton && dr_l < 0.1 )   continue;
+	
 
         int itrk = -1;
         float mindz = 999.;
