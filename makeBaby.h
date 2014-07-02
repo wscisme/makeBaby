@@ -14,8 +14,8 @@
 #include "Math/VectorUtil.h"
 #include "Math/Vector4D.h"
 
-#include "/home/users/aaivazis/CORE/ssSelections.h"
-#include "/home/users/aaivazis/CORE/muonSelections.h"
+#include "/home/users/sicheng/CORE/ssSelections.h"
+#include "/home/users/sicheng/CORE/muonSelections.h"
 
 typedef ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float> > LorentzVector;
 
@@ -79,6 +79,8 @@ class babyMaker {
   bool isZmetLep;
   bool isHLT1Lep;
   bool isHLT2Lep;
+  bool isomu24;
+  bool ele27wp80;
 
   bool trackingProblemVeto;
   bool tauVeto;
@@ -152,6 +154,8 @@ void babyMaker::MakeBabyNtuple(const char *BabyFilename){
   BabyTree_->Branch("isZmetLep", &isZmetLep);
   BabyTree_->Branch("isHLT1Lep", &isHLT1Lep);
   BabyTree_->Branch("isHLT2Lep", &isHLT2Lep);
+  BabyTree_->Branch("isomu24", &isomu24);
+  BabyTree_->Branch("ele27wp80", &ele27wp80);
 
   BabyTree_->Branch("trackingProblemVeto", &trackingProblemVeto);
   BabyTree_->Branch("tauVeto", &tauVeto);

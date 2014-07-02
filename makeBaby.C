@@ -20,7 +20,7 @@
 #include "susySelections.h"
 
 #include "/home/users/jgran/CMSSW_5_3_2_patch4_V05-03-23/src/CMS2/NtupleMacros/Tools/goodrun.cc"
-#include "/home/users/aaivazis/susy/babymaker/Include.C"
+#include "Include.C"
 
 // header
 #include "makeBaby.h"
@@ -141,21 +141,24 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       bool isZmet = false;
       bool isHLT1 = false;
       bool isHLT2 = false;
+      bool isomu24_ = false;
+      bool ele27wp80_ = false;
 
       int n_mus = 0;
       int n_els = 0;      
       // apply cuts to hypotheses
       for(unsigned int i = 0; i< els_p4().size(); i++){
       	//SELECTION
-      	if (els_p4().at(i).pt() < 20)	        {	pt20Counter++;  continue; }
-	if (fabs(els_p4().at(i).eta()) > 2.4)   {	etaCounter++;   continue; }
-	if ( !passElectronSelection_Stop2012_v3(i) )       {	elIdCounter++;  continue; }
+      	if (els_p4().at(i).pt() < 30)	        {	pt20Counter++;  continue; }
+	if (fabs(els_p4().at(i).eta()) > 2.1)   {	etaCounter++;   continue; }
+	if (!passElectronSelection_Stop2012_v3(i) )       {	elIdCounter++;  continue; }
 
 	isSsgn = isNumeratorLepton(11, i);
 	isStop = passElectronSelection_Stop2012_v3(i);
 	isZmet = passElectronSelection_ZMet2012_v3_Iso(i);
-	isHLT1 = els_HLT_Ele27_WP80()[i];
-	isHLT2 = els_HLT_Ele27_WP80_L1sL1SingleEG20ORL1SingleEG22()[i];
+
+	// isHLT1 = els_HLT_Ele27_WP80()[i];
+	// isHLT2 = els_HLT_Ele27_WP80_L1sL1SingleEG20ORL1SingleEG22()[i];
 
 	if ( isNumeratorLepton(11, i) && ( !passElectronSelection_Stop2012_v3(i) )) {samesign++;}  
 	if ( (! isNumeratorLepton(11, i)) && ( passElectronSelection_Stop2012_v3(i) )) {stop++;}  
@@ -170,7 +173,7 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       }    
       for(unsigned int i = 0; i< mus_p4().size(); i++){
 	//SELECTION
-	if (mus_p4().at(i).pt() < 20)		{	pt20Counter++;  continue; } 
+	if (mus_p4().at(i).pt() < 30)		{	pt20Counter++;  continue; } 
 	if (fabs(mus_p4().at(i).eta()) > 2.1)	{	etaCounter++;   continue; }
 	if ( !muonId(i, ZMet2012_v1) )    {	muIdCounter++;  continue; }
 
@@ -180,8 +183,9 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
 	isSsgn = isNumeratorLepton(13, i);
 	isStop = muonId(i, ZMet2012_v1);
 	isZmet = muonId(i, ZMet2012_v1);
-	isHLT1 = mus_HLT_IsoMu24_eta2p1()[i];
-	isHLT2 = mus_HLT_IsoMu24_eta2p1_L1sMu16Eta2p1()[i];
+
+	// isHLT1 = mus_HLT_IsoMu24_eta2p1()[i];
+	// isHLT2 = mus_HLT_IsoMu24_eta2p1_L1sMu16Eta2p1()[i];
 
 	// if ( ! isNumeratorLepton(13, i) )	{	muIdCounter++;  continue; }
      	// if ( muonIsoValuePF2012_deltaBeta(i) > 0.2 ) continue;
@@ -193,7 +197,15 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       
       if ((n_els + n_mus) != 1 ) continue;
 
-      if( pfjets_p4().size() < 2) {less_jets++; continue;} // pre-selection check
+      // if( pfjets_p4().size() < 2) {less_jets++; continue;} // pre-selection check
+
+      //// Trigger ///
+      if (evt_run()<193806 || ! evt_isRealData() )
+        isomu24_   = passUnprescaledHLTTriggerPattern("HLT_IsoMu24_eta2p1_v")  ? 1 : 0;
+      else
+        isomu24_   = passUnprescaledHLTTriggerPattern("HLT_IsoMu24_v")  ? 1 : 0;
+
+      ele27wp80_ = passUnprescaledHLTTriggerPattern("HLT_Ele27_WP80_v")  ? 1 : 0;
       
       bool tau_veto = false;
       /// Tau Veto //
@@ -307,6 +319,8 @@ void babyMaker::ScanChain(TChain* chain, std::string baby_name, unsigned int num
       isZmetLep = isZmet;
       isHLT1Lep = isHLT1;
       isHLT2Lep = isHLT2;
+      isomu24   = isomu24_;
+      ele27wp80 = ele27wp80_;
 
       trackingProblemVeto = trkProbVeto;
       tauVeto = tau_veto;
